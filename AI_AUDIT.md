@@ -41,3 +41,18 @@
 - **Classification:** Client Component
 - **Reason:** Renders the "Check your phone…" screen and the checkout request id; no server-only code.
 - **Note:** Static UI — no money code.
+
+## Week 16 - Day 2
+
+### app/api/mpesa/callback/route.js
+
+- **Classification:** Route Handler (Server-only)
+- **Reason:** Receives the Daraja STK callback, reconciles the payment against the stored order, and mutates the database — runs only on the server.
+- **Money lines (hand-typed):** amount comparison `receivedCents !== expectedCents` (with `Math.round(Number(amountReceived) * 100)`), the idempotency check `order.status === "paid"`, and the `status = 'paid'` / `'cancelled'` updates.
+- **Provenance:** Hand-typed. No AI on amount comparison, idempotency, or the status transition.
+
+### Money rule notes (Day 2)
+
+- The callback returns 200 on every reconcile path (invalid body is the only 400) so Daraja never retries on a non-200.
+- Amount verification compares Daraja's reported amount to the server-stored `total_cents`; a mismatch cancels the order instead of marking it paid.
+- Idempotency protects against duplicate callback deliveries.
