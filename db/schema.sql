@@ -11,6 +11,7 @@ CREATE TABLE orders (
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'initiated', 'paid', 'fulfilled', 'cancelled')),
   payment_method TEXT,
   mpesa_checkout_id TEXT,
+  mpesa_receipt TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
