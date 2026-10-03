@@ -56,3 +56,25 @@
 - The callback returns 200 on every reconcile path (invalid body is the only 400) so Daraja never retries on a non-200.
 - Amount verification compares Daraja's reported amount to the server-stored `total_cents`; a mismatch cancels the order instead of marking it paid.
 - Idempotency protects against duplicate callback deliveries.
+
+## Week 16 - Day 3
+
+### lib/whatsapp.js
+
+- **Classification:** Server-only (shared module)
+- **Reason:** `sendWhatsApp` posts to the Meta Cloud API with the server-side access token and never ships to the client.
+- **Money lines:** None — no amounts are computed or compared here.
+- **Provenance:** `sendWhatsApp` ported from Week 11 (updated to Graph `v26.0`). `formatPhone` (07/+254 → 254 digits) is hand-typed. `buildConfirmationMessage` (formatting only) is AI-assisted.
+
+### app/api/mpesa/callback/route.js (WhatsApp trigger)
+
+- **Classification:** Route Handler (Server-only)
+- **Reason:** The send is triggered after the order is marked `paid`, inside the callback handler.
+- **Trigger logic (hand-typed):** fire the confirmation only on the `resultCode === 0` + amount-matched path; wrap the send in `try/catch` so a failed notification never fails the callback or changes the payment outcome.
+- **Provenance:** Trigger point hand-typed. The message body formatting lives in `buildConfirmationMessage` (AI-assisted).
+
+### Notification rule notes (Day 3)
+
+- A notification is a side effect of the `paid` transition, not the transition itself — it runs after the DB update and cannot roll it back.
+- The callback always returns `{status:"ok"}` even if the WhatsApp send fails (failure is logged for inspection).
+- No network call is awaited inside a DB transaction.
