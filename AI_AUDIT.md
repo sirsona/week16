@@ -59,22 +59,30 @@
 
 ## Week 16 - Day 3
 
-### lib/whatsapp.js
+### lib/whatsapp.js (primary — template path)
 
 - **Classification:** Server-only (shared module)
-- **Reason:** `sendWhatsApp` posts to the Meta Cloud API with the server-side access token and never ships to the client.
+- **Reason:** `sendTemplate` posts to the Meta Cloud API with the server-side access token and never ships to the client.
 - **Money lines:** None — no amounts are computed or compared here.
-- **Provenance:** `sendWhatsApp` ported from Week 11 (updated to Graph `v26.0`). `formatPhone` (07/+254 → 254 digits) is hand-typed. `buildConfirmationMessage` (formatting only) is AI-assisted.
+- **Provenance:** `sendTemplate` ported from mctaba-shop (Graph `v26.0`). `formatPhone` (07/+254 → 254 digits) is hand-typed. `buildTemplateParams` (formatting only) is AI-assisted.
+- **Why templates:** the Meta number is a test number. Free-form text is only delivered inside a 24-hour customer-service window that opens when the _customer_ messages first; otherwise the API accepts the send (HTTP 200) but delivery silently fails. Approved templates (`mctaba_shop`) always deliver.
+
+### lib/whatsapp.js (kept — session-text path)
+
+- **Classification:** Server-only (shared module)
+- **Reason:** `sendWhatsApp` posts free-form text; kept per the assignment's Task 1/2 shape.
+- **Provenance:** `sendWhatsApp` ported from Week 11 (Graph `v26.0`). `buildConfirmationMessage` (formatting only) is AI-assisted.
 
 ### app/api/mpesa/callback/route.js (WhatsApp trigger)
 
 - **Classification:** Route Handler (Server-only)
 - **Reason:** The send is triggered after the order is marked `paid`, inside the callback handler.
-- **Trigger logic (hand-typed):** fire the confirmation only on the `resultCode === 0` + amount-matched path; wrap the send in `try/catch` so a failed notification never fails the callback or changes the payment outcome.
-- **Provenance:** Trigger point hand-typed. The message body formatting lives in `buildConfirmationMessage` (AI-assisted).
+- **Trigger logic (hand-typed):** fire the confirmation only on the `resultCode === 0` + amount-matched path; call `sendTemplate(order.customer_phone, process.env.WHATSAPP_TEMPLATE_NAME, buildTemplateParams(order, items))`; wrap the send in `try/catch` so a failed notification never fails the callback or changes the payment outcome.
+- **Provenance:** Trigger point hand-typed. The placeholder formatting lives in `buildTemplateParams` (AI-assisted).
 
 ### Notification rule notes (Day 3)
 
 - A notification is a side effect of the `paid` transition, not the transition itself — it runs after the DB update and cannot roll it back.
 - The callback always returns `{status:"ok"}` even if the WhatsApp send fails (failure is logged for inspection).
 - No network call is awaited inside a DB transaction.
+- Send success is logged (`sendTemplate succeeded: {messages:[…]}`) so silent delivery failures surface immediately.
