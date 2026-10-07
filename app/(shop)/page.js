@@ -112,7 +112,7 @@ export default async function HomePage() {
                   Bestsellers
                 </h2>
                 <p className="text-gray-600 mt-1">
-                  Our readers can't get enough of these.
+                  Our readers can&apos;t get enough of these.
                 </p>
               </div>
               <Link

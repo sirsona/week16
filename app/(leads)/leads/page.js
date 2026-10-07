@@ -3,10 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export default async function LeadsPage() {
-  // Simulate slow query (remove after testing)
-  await new Promise((r) => setTimeout(r, 1500));
-
- let leads = [];
+  let leads = [];
   let error = null;
 
   try {

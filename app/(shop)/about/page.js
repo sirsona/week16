@@ -43,7 +43,7 @@ export default function AboutPage() {
             </p>
 
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Whether you're a software engineer, entrepreneur, student, or
+              Whether you&apos;re a software engineer, entrepreneur, student, or
               simply someone who loves reading, our goal is to connect you with
               books that offer practical knowledge and lasting value.
             </p>

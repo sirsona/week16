@@ -5,7 +5,7 @@ export default function LeadsError({ error, reset }) {
     <main className="max-w-3xl mx-auto p-8">
       <h1 className="text-red-700 text-2xl font-bold">Something went wrong</h1>
       <p className="text-gray-600 mt-2">
-        We couldn't load the leads. Please try again.
+        We couldn&apos;t load the leads. Please try again.
       </p>
       <button
         onClick={() => window.location.reload()}

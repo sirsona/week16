@@ -105,7 +105,7 @@ export default async function ProductsPage() {
               No books available
             </h3>
             <p className="mt-2 text-gray-600">
-              We're updating our catalogue. Check back soon.
+              We&apos;re updating our catalogue. Check back soon.
             </p>
           </div>
         ) : (
