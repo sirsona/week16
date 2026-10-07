@@ -46,7 +46,15 @@ CREATE TABLE orders (
   payment_method TEXT,
   mpesa_checkout_id TEXT,
   mpesa_receipt TEXT,
+  stripe_session_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_orders_stripe_session ON orders (stripe_session_id);
+
+-- Stripe webhook idempotency (one row per processed event.id)
+CREATE TABLE webhook_events (
+  id TEXT PRIMARY KEY,
+  received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE order_items (
