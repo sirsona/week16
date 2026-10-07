@@ -15,11 +15,11 @@ export async function initiateMpesaPayment(orderId, phone, amountCents) {
   // 1. Hand-typed Validation Rules
   const normalizedPhone = normalizePhone(phone);
   if (!normalizedPhone || !/^254(7|1)\d{8}$/.test(normalizedPhone)) {
-    return { error: "Invalid phone number format. Must be 254XXXXXXXXX" };
+    return { error: "Enter a valid Kenyan phone number (e.g. 0712345678)." };
   }
 
   if (!amountCents || amountCents < 100) {
-    return { error: "Invalid order total amount" };
+    return { error: "Could not verify the order amount. Please contact support." };
   }
 
   try {
@@ -35,7 +35,7 @@ export async function initiateMpesaPayment(orderId, phone, amountCents) {
     });
 
     if (!result.CheckoutRequestID) {
-      return { error: "Failed to receive CheckoutRequestID from Daraja" };
+      return { error: "Could not reach M-Pesa. Please try again." };
     }
 
     // 4. Persist the checkout request id on the order record
@@ -47,6 +47,6 @@ export async function initiateMpesaPayment(orderId, phone, amountCents) {
     return { checkoutRequestId: result.CheckoutRequestID };
   } catch (err) {
     console.error("M-Pesa STK Push Error:", err.response?.data || err.message);
-    return { error: "Payment initiation failed. Please try again." };
+    return { error: "Could not reach M-Pesa. Please try again." };
   }
 }
