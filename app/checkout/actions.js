@@ -120,7 +120,7 @@ export async function createOrder(formData) {
   redirect(`/orders/${result.orderId}`);
 }
 
-export async function createOrderForMpesa(formData) {
+export async function createOrderForPayment(formData) {
   const parsed = parseOrder(formData);
   if (parsed.error) return { error: parsed.error };
 

@@ -1,8 +1,7 @@
 // app/api/mpesa/callback/route.js
 import pool from "@/lib/db";
 import { NextResponse } from "next/server";
-import { sendTemplate, buildTemplateParams } from "@/lib/whatsapp";
-import { withRetry } from "@/lib/retry";
+import { sendOrderConfirmation } from "@/lib/notifications";
 
 export async function POST(req) {
   let callback;
@@ -70,27 +69,10 @@ export async function POST(req) {
         [receipt, order.id],
       );
 
-      // Fetch the order items for the confirmation message.
-      const { rows: items } = await pool.query(
-        `SELECT oi.quantity, p.name
-         FROM order_items oi JOIN products p ON p.id = oi.product_id
-         WHERE oi.order_id = $1`,
-        [order.id],
-      );
-
       // Trigger the WhatsApp confirmation -- hand-typed trigger point.
       // Best-effort: a failed send must not fail the callback or the payment.
-      // Uses the approved `mctaba_shop` template: on the Meta test number,
-      // free-form text only delivers inside a 24h customer-service window,
-      // while approved templates always deliver.
       try {
-        const templateName =
-          process.env.WHATSAPP_TEMPLATE_NAME || "mctaba_shop";
-        const params = buildTemplateParams(order, items);
-        await withRetry(
-          () => sendTemplate(order.customer_phone, templateName, params),
-          { attempts: 3, baseDelayMs: 500 },
-        );
+        await sendOrderConfirmation(order.id);
       } catch (err) {
         console.error("Failed to send WhatsApp confirmation:", err);
       }

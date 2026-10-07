@@ -2,8 +2,9 @@
 
 import { useCart } from "@/app/cart/CartContext";
 import { useTransition } from "react";
-import { createOrder, createOrderForMpesa } from "../checkout/actions";
+import { createOrder, createOrderForPayment } from "../checkout/actions";
 import { initiateMpesaPayment } from "../checkout/mpesaAction";
+import { createStripeCheckoutSession } from "../checkout/stripeAction";
 
 export default function PaymentStep({ state, dispatch }) {
   const { state: cart, dispatch: cartDispatch } = useCart();
@@ -23,7 +24,7 @@ export default function PaymentStep({ state, dispatch }) {
 
     try {
       if (paymentMethod === "mpesa") {
-        const created = await createOrderForMpesa(formData);
+        const created = await createOrderForPayment(formData);
         if (created?.error) {
           restoreCart(items);
           dispatch({ type: "ERROR", message: created.error });
@@ -45,6 +46,27 @@ export default function PaymentStep({ state, dispatch }) {
           type: "AWAIT_PAYMENT",
           orderId: created.orderId,
           checkoutRequestId: result.checkoutRequestId,
+        });
+        return;
+      }
+
+      if (paymentMethod === "stripe") {
+        const created = await createOrderForPayment(formData);
+        if (created?.error) {
+          restoreCart(items);
+          dispatch({ type: "ERROR", message: created.error });
+          return;
+        }
+
+        const result = await createStripeCheckoutSession(created.orderId);
+        if (result?.url) {
+          window.location.assign(result.url);
+          return;
+        }
+
+        dispatch({
+          type: "ERROR",
+          message: result?.error || "Could not start card payment.",
         });
         return;
       }
@@ -114,6 +136,18 @@ export default function PaymentStep({ state, dispatch }) {
             className="w-4 h-4 text-black focus:ring-black"
           />
           <span>M-Pesa </span>
+        </label>
+
+        <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
+          <input
+            type="radio"
+            name="paymentMethod"
+            value="stripe"
+            required
+            defaultChecked={state.paymentMethod === "stripe"}
+            className="w-4 h-4 text-black focus:ring-black"
+          />
+          <span>Card (Visa / Mastercard)</span>
         </label>
 
         <div className="flex gap-4 pt-4">
