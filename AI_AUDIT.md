@@ -86,3 +86,50 @@
 - The callback always returns `{status:"ok"}` even if the WhatsApp send fails (failure is logged for inspection).
 - No network call is awaited inside a DB transaction.
 - Send success is logged (`sendTemplate succeeded: {messages:[…]}`) so silent delivery failures surface immediately.
+
+## Week 16 - Day 4
+
+### lib/retry.js
+
+- **Classification:** Server-only (shared module)
+- **Reason:** Pure `withRetry(fn, { attempts, baseDelayMs })` helper — exponential backoff; no client or DB code.
+- **Retry policy (hand-set):** 3 attempts, 500ms base delay; 4xx responses are thrown immediately (per the Day 4 "do not retry a 400" rule); network/5xx errors are retried.
+- **Provenance:** Helper shape from the assignment; the policy constants were decided manually, not AI-generated.
+
+### app/api/orders/[id]/status/route.js
+
+- **Classification:** Route Handler (Server-only)
+- **Reason:** Read-only `SELECT status` used by the checkout polling loop; returns only `{ status }`.
+- **Money lines:** None — no amounts, references, or transitions.
+- **Provenance:** Hand-typed (with the Next 16 `await params` adaptation).
+
+### app/components/AwaitPayment.jsx
+
+- **Classification:** Client Component
+- **Reason:** Uses `useEffect` + `setInterval`/`setTimeout` to poll the status route; browser-only APIs require `"use client"`.
+- **Money rule:** No money math — it only reads a status string and calls `onPaid`/`onFailed`.
+- **Provenance:** Polling scaffold AI-assisted; timeout/cancelled wiring reviewed and wired manually.
+
+### Money rule notes (Day 4)
+
+- No new money lines were introduced — the money audit (Days 1–2) is unchanged and current.
+- Polling never decides when an order is paid: the M-Pesa callback owns that transition; the client only observes it.
+
+### lib/reconcile.js + lib/mpesa.js (queryStkStatus)
+
+- **Classification:** Server-only (shared modules)
+- **Reason:** Calls Daraja's STK Push Query API and updates `orders`; never ships to the client.
+- **Money lines (hand-typed):** the ResultCode → status mapping (`"0"` → `paid`; `1032/1037/2001` → `cancelled`; `4999`/unknown → no change). Only an authoritative Daraja ResultCode flips an order to `paid`.
+- **Provenance:** Hand-typed. No AI on the status decision.
+
+### app/api/orders/[id]/reconcile/route.js + app/admin/orders/[id]/reconcile.js
+
+- **Classification:** Route Handler / Server Action (Server-only)
+- **Reason:** Exposes `reconcileOrder` to the checkout timeout backstop and the admin button.
+- **Note:** Reconciliation cannot fabricate a payment — it only reflects Daraja's authoritative result; receipt numbers cannot be recovered once a callback is lost.
+
+### app/admin/orders/[id]/ReconcileButton.jsx + app/components/AwaitPayment.jsx (timeout)
+
+- **Classification:** Client Components
+- **Reason:** Buttons/polling that invoke the server reconciliation.
+- **Note:** No money math on the client; the timeout backstop only re-checks Daraja once before failing.
