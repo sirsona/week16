@@ -3,6 +3,7 @@ import pool from "@/lib/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { updateStatus } from "./updateStatus";
+import ReconcileButton from "./ReconcileButton";
 
 export const metadata = { title: "Order Details | Mctaba Shop Admin" };
 
@@ -75,6 +76,11 @@ export default async function AdminOrderDetailPage({ params }) {
               Update
             </button>
           </form>
+
+          {order.payment_method === "mpesa" &&
+            (order.status === "initiated" || order.status === "pending") && (
+              <ReconcileButton orderId={order.id} />
+            )}
         </div>
 
         {/* Order Items */}
