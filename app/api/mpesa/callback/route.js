@@ -2,6 +2,7 @@
 import pool from "@/lib/db";
 import { NextResponse } from "next/server";
 import { sendTemplate, buildTemplateParams } from "@/lib/whatsapp";
+import { withRetry } from "@/lib/retry";
 
 export async function POST(req) {
   let callback;
@@ -17,6 +18,13 @@ export async function POST(req) {
   }
 
   const checkoutId = callback.CheckoutRequestID;
+
+  // Log every callback on arrival so lost/slow deliveries are diagnosable.
+  console.log("M-Pesa callback received:", {
+    checkoutId,
+    resultCode: callback.ResultCode,
+    resultDesc: callback.ResultDesc,
+  });
 
   try {
     // Look up order
@@ -79,7 +87,10 @@ export async function POST(req) {
         const templateName =
           process.env.WHATSAPP_TEMPLATE_NAME || "mctaba_shop";
         const params = buildTemplateParams(order, items);
-        await sendTemplate(order.customer_phone, templateName, params);
+        await withRetry(
+          () => sendTemplate(order.customer_phone, templateName, params),
+          { attempts: 3, baseDelayMs: 500 },
+        );
       } catch (err) {
         console.error("Failed to send WhatsApp confirmation:", err);
       }
