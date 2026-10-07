@@ -1,7 +1,7 @@
 // app/checkout/page.js
 "use client";
 
-import { useReducer } from "react";
+import { useCallback, useReducer } from "react";
 import { checkoutReducer, initialState } from "./checkoutReducer";
 
 // Import the separated components
@@ -16,13 +16,13 @@ import AwaitPayment from "../components/AwaitPayment";
 export default function CheckoutPage() {
   const [state, dispatch] = useReducer(checkoutReducer, initialState);
 
-  const handleSuccess = (orderId) => {
+  const handleSuccess = useCallback((orderId) => {
     dispatch({ type: "SUCCESS", orderId });
-  };
+  }, []);
 
-  const handleError = (message) => {
+  const handleError = useCallback((message) => {
     dispatch({ type: "ERROR", message });
-  };
+  }, []);
 
   const handleReset = () => {
     dispatch({ type: "RESET" });
@@ -47,7 +47,12 @@ export default function CheckoutPage() {
 
   if (state.step === "await_payment") {
     return (
-      <AwaitPayment checkoutRequestId={state.checkoutRequestId} />
+      <AwaitPayment
+        orderId={state.orderId}
+        checkoutRequestId={state.checkoutRequestId}
+        onPaid={handleSuccess}
+        onFailed={handleError}
+      />
     );
   }
 
