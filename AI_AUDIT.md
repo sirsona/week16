@@ -133,3 +133,44 @@
 - **Classification:** Client Components
 - **Reason:** Buttons/polling that invoke the server reconciliation.
 - **Note:** No money math on the client; the timeout backstop only re-checks Daraja once before failing.
+
+# Week 17 - Day 1 (Stripe)
+
+### lib/stripe.js
+
+- **Classification:** Server-only (shared module)
+- **Reason:** Instantiates the Stripe SDK with the secret key; never ships to the client.
+- **Money lines:** None itself — amounts are passed in by the action.
+- **Provenance:** Assignment boilerplate. API version left to the SDK default (the pinned `2023-10-16` from the snippet is rejected by the installed SDK).
+
+### app/checkout/stripeAction.js
+
+- **Classification:** Server-only (`"use server"`)
+- **Reason:** Reads the order total server-side and creates a Stripe Checkout Session; must never run on the client.
+- **Money lines (hand-typed):** `currency: "kes"`, `unit_amount: order.total_cents` (amount always read from the DB, never from the client), `metadata.order_id` linkage.
+- **Provenance:** Structure from the assignment, adapted to the live API (see quirks).
+
+### app/api/webhooks/stripe/route.js
+
+- **Classification:** Route Handler (Server-only)
+- **Reason:** Receives Stripe events, verifies signatures, and mutates orders.
+- **Money lines (hand-typed):** signature verification (`stripe.webhooks.constructEvent`), idempotency via `webhook_events(event.id)`, the `status = 'paid'` transition guarded by `payment_method = 'stripe'`.
+- **Provenance:** Hand-typed. No AI on signature verification, idempotency, or the paid decision.
+
+### lib/notifications.js
+
+- **Classification:** Server-only (shared module)
+- **Reason:** Extracted `sendOrderConfirmation(orderId)` now used by both the M-Pesa callback and the Stripe webhook.
+- **Provenance:** Refactor of Week 16 code; no new money lines.
+
+## Provider quirks log
+
+### Stripe
+
+1. `payment_method_types: ["card"]` is **no longer accepted** by the Checkout Sessions API (verified live against API version `2026-09-30.endive`) — payment methods are dashboard-managed; omitting the param uses card by default in test mode.
+2. The assignment's pinned `apiVersion: "2023-10-16"` is rejected by the installed SDK — use the SDK default.
+3. The client `success_url` is **not proof of payment**; the signed webhook (`checkout.session.completed`) is the only source of truth for `paid`.
+4. Idempotency is **event-based** (`event.id` + `webhook_events` dedup), unlike Daraja's reference-based duplicate check.
+5. `metadata.order_id` is the Stripe equivalent of Daraja's `CheckoutRequestID` — how the webhook finds the order.
+6. Amounts are the smallest currency unit (`unit_amount` cents) with `currency: "kes"`.
+7. A US test account accepts KES as a presentment currency, and test-mode Checkout works even with `charges_enabled: false` (that flag gates live charges only).
