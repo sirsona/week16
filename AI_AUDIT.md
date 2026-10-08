@@ -174,3 +174,37 @@
 5. `metadata.order_id` is the Stripe equivalent of Daraja's `CheckoutRequestID` — how the webhook finds the order.
 6. Amounts are the smallest currency unit (`unit_amount` cents) with `currency: "kes"`.
 7. A US test account accepts KES as a presentment currency, and test-mode Checkout works even with `charges_enabled: false` (that flag gates live charges only).
+
+# Week 17 - Day 2 (Airtel Money)
+
+### lib/airtel.js
+
+- **Classification:** Server-only (shared module)
+- **Reason:** Calls Airtel's OAuth and Collections APIs with server credentials; never ships to the client.
+- **Money lines (hand-typed):** `Math.ceil(amountCents / 100)` (Airtel takes whole KSh), the reference format `ord_<short>_<ts>`, and the `status.code === "200"` success gate.
+- **Provenance:** Hand-typed from the assignment/reading shape (docs-first). Token cached with an expiry buffer.
+
+### app/checkout/airtelAction.js
+
+- **Classification:** Server-only (`"use server"`)
+- **Reason:** Validates input and initiates the collection; runs only on the server.
+- **Money lines (hand-typed):** phone normalisation + regex, the `amountCents < 100` guard, and persisting `airtel_reference` + `status='initiated'`.
+- **Provenance:** Hand-typed.
+
+### app/api/airtel/callback/route.js
+
+- **Classification:** Route Handler (Server-only)
+- **Reason:** Reconciles Airtel's callback against the stored order.
+- **Money lines (hand-typed):** the amount comparison (`Math.ceil(total_cents / 100) !== Number(txn.amount)`), idempotency (`status === 'paid'`), the TS/TF/TIP mapping, and the `paid`/`cancelled` transitions.
+- **Provenance:** Hand-typed. No AI on amount checks, idempotency, or status decisions.
+
+### Provider quirks log — Airtel Money
+
+1. **OAuth tokens are rate-limited heavily** — cache the token and refresh 60s before expiry; a token per request would throttle within dozens of orders.
+2. The initiate API returns a **synchronous status code** (`status.code === "200"`), unlike Daraja which only acknowledges async acceptance.
+3. Every request requires `X-Country` and `X-Currency` headers, not just `Authorization`.
+4. The customer prompt is a **USSD popup**, not an app notification.
+5. Callback status codes are `TS` (success), `TF` (failed), `TIP` (in progress) — `TIP` must be ignored (leave `initiated`); Airtel calls again.
+6. Amounts are **whole KSh** — no cents; conversion happens at the boundary (`Math.ceil`).
+7. The callback signature scheme is inconsistent across Airtel's docs (HMAC vs `hash`) — defence relies on the non-guessable reference id + a validated order lookup; production should add IP allowlisting.
+8. The callback looks up orders by `airtel_reference`, so it must be unique — hardened with a unique partial index (`WHERE airtel_reference IS NOT NULL`).
