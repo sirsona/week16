@@ -47,9 +47,13 @@ CREATE TABLE orders (
   mpesa_checkout_id TEXT,
   mpesa_receipt TEXT,
   stripe_session_id TEXT,
+  airtel_reference TEXT,
+  airtel_transaction_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX idx_orders_stripe_session ON orders (stripe_session_id);
+CREATE UNIQUE INDEX idx_orders_airtel_ref ON orders (airtel_reference)
+  WHERE airtel_reference IS NOT NULL;
 
 -- Stripe webhook idempotency (one row per processed event.id)
 CREATE TABLE webhook_events (
