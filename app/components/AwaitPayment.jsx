@@ -67,9 +67,9 @@ export default function AwaitPayment({
 
   return (
     <div className="max-w-lg mx-auto p-8 text-center">
-      <h1 className="text-2xl font-bold mb-3">M-Pesa payment initiated</h1>
+      <h1 className="text-2xl font-bold mb-3">Payment initiated</h1>
       <p className="text-gray-600">
-        Check your phone for the M-Pesa prompt and enter your PIN to complete
+        Check your phone for the payment prompt and enter your PIN to complete
         the payment.
       </p>
 

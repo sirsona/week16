@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { createOrder, createOrderForPayment } from "../checkout/actions";
 import { initiateMpesaPayment } from "../checkout/mpesaAction";
 import { createStripeCheckoutSession } from "../checkout/stripeAction";
+import { initiateAirtelPayment } from "../checkout/airtelAction";
 
 export default function PaymentStep({ state, dispatch }) {
   const { state: cart, dispatch: cartDispatch } = useCart();
@@ -46,6 +47,33 @@ export default function PaymentStep({ state, dispatch }) {
           type: "AWAIT_PAYMENT",
           orderId: created.orderId,
           checkoutRequestId: result.checkoutRequestId,
+        });
+        return;
+      }
+
+      if (paymentMethod === "airtel") {
+        const created = await createOrderForPayment(formData);
+        if (created?.error) {
+          restoreCart(items);
+          dispatch({ type: "ERROR", message: created.error });
+          return;
+        }
+
+        const result = await initiateAirtelPayment(
+          created.orderId,
+          state.customer.phone,
+          created.totalCents,
+        );
+
+        if (result?.error) {
+          dispatch({ type: "ERROR", message: result.error });
+          return;
+        }
+
+        dispatch({
+          type: "AWAIT_PAYMENT",
+          orderId: created.orderId,
+          checkoutRequestId: result.referenceId,
         });
         return;
       }
@@ -136,6 +164,18 @@ export default function PaymentStep({ state, dispatch }) {
             className="w-4 h-4 text-black focus:ring-black"
           />
           <span>M-Pesa </span>
+        </label>
+
+        <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
+          <input
+            type="radio"
+            name="paymentMethod"
+            value="airtel"
+            required
+            defaultChecked={state.paymentMethod === "airtel"}
+            className="w-4 h-4 text-black focus:ring-black"
+          />
+          <span>Airtel Money</span>
         </label>
 
         <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
